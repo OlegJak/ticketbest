@@ -1089,6 +1089,9 @@
     state.country = sel.value;
     const all = state.country === "all";
     $("#country-label").innerHTML = `<span class="f">${esc(all ? t("allCountries") : countryName(state.country))}</span><span class="s">${all ? t("cat_all") : state.country}</span>`;
+    const opt = (c, code, name, n) => `<button type="button" class="dd__opt ${c === state.country ? "is-on" : ""}" role="option" aria-selected="${c === state.country}" data-country="${c}"><b>${code}</b><span>${esc(name)}</span><i>${n}</i></button>`;
+    $(".clist").innerHTML = opt("all", I.globe, t("allCountries"), events.length) +
+      codes.map((c) => opt(c, c, countryName(c), counts[c])).join("");
   }
   function initControls() {
     const lang = $("#lang"), country = $("#country");
@@ -1106,6 +1109,18 @@
       else { renderFilters(); renderResults(); $("#afisha")?.scrollIntoView({ behavior: "smooth" }); }
     };
     syncCountrySelect();
+    const box = $(".select--country"), list = $(".clist");
+    const setOpen = (open) => { list.hidden = !open; box.classList.toggle("is-open", open); };
+    box.addEventListener("click", (ev) => {
+      if (mqMenu.matches) return;
+      ev.preventDefault();
+      const o = ev.target.closest("[data-country]");
+      if (o) { setOpen(false); if (o.dataset.country !== state.country) { country.value = o.dataset.country; country.onchange(); } return; }
+      setOpen(list.hidden);
+    });
+    document.addEventListener("click", (ev) => { if (!ev.target.closest(".select--country")) setOpen(false); });
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") setOpen(false); });
+    mqMenu.addEventListener("change", () => setOpen(false));
   }
   /* ================================================================ MENU */
   const MX = {
@@ -1134,8 +1149,8 @@
     // desktop header: language dropdown instead of the burger menu
     const cur = LANGS.find((x) => x[0] === state.lang);
     $(".hlang").innerHTML = `<button type="button" class="select hlang__btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">${I.globe}<span>${cur[1]}</span></button>
-      <div class="hlang__list" role="listbox" hidden>${LANGS.map(([l, s, name, demo]) =>
-        `<button type="button" class="hlang__opt ${l === state.lang ? "is-on" : ""}" role="option" aria-selected="${l === state.lang}" data-lang="${l}"><b>${s}</b><span>${esc(name)}</span>${demo ? '<i>demo</i>' : ""}</button>`).join("")}</div>`;
+      <div class="dd__list" role="listbox" hidden>${LANGS.map(([l, s, name, demo]) =>
+        `<button type="button" class="dd__opt ${l === state.lang ? "is-on" : ""}" role="option" aria-selected="${l === state.lang}" data-lang="${l}"><b>${s}</b><span>${esc(name)}</span>${demo ? '<i>demo</i>' : ""}</button>`).join("")}</div>`;
   }
   function initMenu() {
     const btn = $("#menu-btn"), menu = $("#menu"), country = $(".select--country"), actions = $(".header__actions");
@@ -1157,7 +1172,7 @@
     });
     const hlang = $(".hlang");
     const setLangOpen = (open) => {
-      const b = $(".hlang__btn", hlang), list = $(".hlang__list", hlang);
+      const b = $(".hlang__btn", hlang), list = $(".dd__list", hlang);
       if (!b || !list) return;
       list.hidden = !open; b.setAttribute("aria-expanded", String(open));
     };
@@ -1168,7 +1183,7 @@
         else setLangOpen(false);
         return;
       }
-      if (ev.target.closest(".hlang__btn")) setLangOpen($(".hlang__list", hlang).hidden);
+      if (ev.target.closest(".hlang__btn")) setLangOpen($(".dd__list", hlang).hidden);
     });
     document.addEventListener("click", (ev) => { if (ev.target.isConnected && !ev.target.closest(".hlang")) setLangOpen(false); });
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") setLangOpen(false); });
