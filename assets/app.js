@@ -297,7 +297,7 @@
             <div class="section__head">
               <div><h2 class="section__title">${t("tours")}</h2><p class="section__sub">${t("toursSub")}</p></div>
             </div>
-            <div class="tours">${DATA.tours.map(tourCardHTML).join("")}</div>
+            <div class="tours">${DATA.tours.map((tr) => tourCardHTML(tr)).join("")}</div>
           </div>
         </section>
 
@@ -478,7 +478,7 @@
       </section>` : ""}
       ${tours.length ? `<section class="m-tours container">
         <div class="m-list__head"><h2>${t("tours")}</h2></div>
-        <div class="tours">${tours.map(tourCardHTML).join("")}</div>
+        <div class="tours tours--posters">${tours.map((tr) => tourCardHTML(tr, true)).join("")}</div>
       </section>` : ""}
       <section class="m-list container">
         <div class="m-list__head">
@@ -616,13 +616,16 @@
     sync(); restart();
   }
 
-  function tourCardHTML(tr) {
+  // Desktop: wide tour picture. Phone home (poster = true): the vertical poster.
+  function tourCardHTML(tr, poster = false) {
     const list = events.filter((e) => e.tour === tr.slug);
     if (!list.length) return "";
     const cities = new Set(list.map((e) => e.city)).size;
     const range = rangeLabel(list);
-    return `<a class="tour" href="#/t/${esc(tr.slug)}">
-      <img src="${esc(list[0].poster || tr.image)}" alt="" loading="lazy">
+    const wide = tr.image || list[0].image;
+    const img = poster ? list[0].poster || wide : wide || list[0].poster;
+    return `<a class="tour ${!poster && !wide ? "tour--fallback" : ""}" href="#/t/${esc(tr.slug)}">
+      <img src="${esc(img)}" alt="" loading="lazy">
       <div class="tour__body">
         <h3 class="tour__title">${esc(tr.title)}</h3>
         <div class="tour__meta"><span class="pill">${range}</span><span class="pill">${t("tourDates", list.length, cities)}</span></div>
@@ -786,7 +789,7 @@
     document.title = `${cur.title} — ${cur.city} | Ticket Best Europe`;
     main.innerHTML = `
       <div class="page">
-        ${posterHeroHTML(cur.poster || cur.image, cur.title)}
+        ${posterHeroHTML(cur.poster, cur.title, "", cur.image)}
 
         <div class="container">
           <div class="ev">
@@ -903,12 +906,23 @@
   }
 
   // Poster page top: the vertical poster on a soft glow made from its own colours (glow runs up under the glass header)
-  function posterHeroHTML(src, alt, extra = "") {
-    return `<section class="p-hero">
-      <div class="p-hero__glow" aria-hidden="true"><img src="${esc(src)}" alt=""></div>
+  // Wide picture failed to load: fall back to the poster layout
+  window.pHeroFallback = (img) => {
+    img.onerror = null;
+    img.closest(".p-hero")?.classList.remove("p-hero--wide");
+    img.parentElement.querySelector("source")?.remove();
+    img.src = img.dataset.poster;
+  };
+  // On a desktop screen the wide picture is shown instead of the poster (when there is one)
+  function posterHeroHTML(src, alt, extra = "", wide = "") {
+    return `<section class="p-hero ${wide ? "p-hero--wide" : ""}">
+      <div class="p-hero__glow" aria-hidden="true"><img src="${esc(src || wide)}" alt=""></div>
       <div class="container p-hero__inner">
         <button class="back" data-back>${I.arrowL}${t("back")}</button>
-        <img class="p-hero__poster" src="${esc(src)}" alt="${esc(alt)}">
+        <picture class="p-hero__pic">
+          ${wide ? `<source media="(min-width: 641px)" srcset="${esc(wide)}">` : ""}
+          <img class="p-hero__poster" src="${esc(src || wide)}" alt="${esc(alt)}"${wide && src ? ` data-poster="${esc(src)}" onerror="pHeroFallback(this)"` : ""}>
+        </picture>
         ${extra}
       </div>
     </section>`;
@@ -922,9 +936,9 @@
     document.title = `${title} | Ticket Best Europe`;
     main.innerHTML = `
       <div class="page">
-        ${posterHeroHTML(list[0].poster || image, title, `
+        ${posterHeroHTML(list[0].poster, title, `
           <h1 class="p-hero__title">${esc(title)}</h1>
-          <div class="tour__meta"><span class="pill">${esc(range)}</span><span class="pill">${t("tourDates", list.length, cities)}</span><span class="pill">${esc(countries)}</span></div>`)}
+          <div class="tour__meta"><span class="pill">${esc(range)}</span><span class="pill">${t("tourDates", list.length, cities)}</span><span class="pill">${esc(countries)}</span></div>`, image || list[0].image)}
         <div class="container">
         <div class="dates">
           ${groups.map((g) => `
