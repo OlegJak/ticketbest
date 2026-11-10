@@ -1086,7 +1086,7 @@
       menu.hidden = !open;
       btn.setAttribute("aria-expanded", String(open));
       document.body.classList.toggle("menu-open", open);
-      if (open) document.body.classList.remove("header-hidden");
+      if (open) { headerPin.pin(); menu.style.top = Math.max(0, header.getBoundingClientRect().bottom) + "px"; }
     };
     btn.onclick = () => setOpen(menu.hidden);
     menu.addEventListener("click", (ev) => {
@@ -1539,29 +1539,35 @@
   new ResizeObserver(setStickyTop).observe(header);
   setStickyTop();
 
-  // Phone: the header slides away while scrolling down and comes back on the slightest scroll up
-  {
+  // Phone: like piletilevi, the header is NOT pinned — it scrolls away with the page, so Safari
+  // shows the page under its address bar. A small scroll up pins it back (slides in from above);
+  // scrolling down unpins it again. Nothing is pinned to the top on load.
+  const headerPin = (() => {
     let lastY = scrollY, travel = 0;
-    const show = () => {
-      if (!document.body.classList.contains("header-hidden")) return;
-      document.body.classList.remove("header-hidden");
-      if (scrollY > header.offsetHeight) { // slide back in from above
-        header.classList.remove("is-back"); void header.offsetWidth; header.classList.add("is-back");
-      }
+    const pinned = () => document.body.classList.contains("header-pinned");
+    const pin = () => {
+      if (pinned()) return;
+      document.body.classList.add("header-pinned");
+      header.classList.remove("is-back"); void header.offsetWidth; header.classList.add("is-back");
     };
+    const unpin = () => { document.body.classList.remove("header-pinned"); header.classList.remove("is-back"); };
     header.addEventListener("animationend", () => header.classList.remove("is-back"));
     addEventListener("scroll", () => {
       const y = Math.max(0, scrollY), dy = y - lastY;
       lastY = y;
+      if (!mqMobile.matches) { travel = 0; return unpin(); }
+      if (y <= 0) { travel = 0; return unpin(); }           // back at the top: header is there by itself
       const searching = document.activeElement === $("#search") || !$("#search-results")?.hidden;
-      if (!mqMobile.matches || y < header.offsetHeight || searching || document.body.classList.contains("menu-open")) { travel = 0; return show(); }
+      if (searching || document.body.classList.contains("menu-open")) { travel = 0; return; }
       travel = Math.sign(dy) === Math.sign(travel) ? travel + dy : dy;
-      if (travel > 12) document.body.classList.add("header-hidden");
-      else if (travel < -6) show();
+      if (travel > 12) unpin();
+      else if (travel < -6 && y > header.offsetHeight) pin();
     }, { passive: true });
-    mqMobile.addEventListener("change", show);
-    addEventListener("hashchange", show);
-  }
+    mqMobile.addEventListener("change", unpin);
+    addEventListener("hashchange", unpin);
+    return { pin: () => { if (mqMobile.matches && scrollY > 0) pin(); } };
+  })();
+  document.addEventListener("touchstart", () => {}, { passive: true }); // lets :active work on iOS
   applyStatic();
   initMenu();
   initControls();

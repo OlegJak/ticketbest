@@ -32,7 +32,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 16px); }
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 16px); }
 body {
   margin: 0;
   background: var(--bg);
@@ -86,7 +86,10 @@ p { margin: 0; }
    Safari on iOS paints its top bar in the colour of any fixed/sticky element at the top,
    so while hidden there must be no sticky header for the page to show under the address bar.
    (Sticky and relative take the same space in the flow, so nothing jumps.) */
-body.header-hidden .header { position: relative; }
+@media (max-width: 640px) {
+  .header { position: relative; }
+  body.header-pinned .header { position: sticky; }
+}
 .header.is-back { animation: header-in .28s var(--ease); }
 @keyframes header-in { from { transform: translateY(-100%); } }
 .header__inner { height: var(--header-h); display: flex; align-items: center; gap: 20px; }
@@ -579,6 +582,16 @@ a.tag:hover { background: var(--line); }
 .daterow__link::after { content: ""; position: absolute; inset: 0; }
 .daterow { position: relative; }
 .daterow .btn { position: relative; z-index: 1; }
+/* press feedback on the whole row / card, not just the text (iOS grey text highlight is turned off) */
+.daterow { position: relative; }
+.daterow:has(.daterow__link:active) { background: var(--surface-2); }
+.row:has(:is(a, .row__link):active) { background: var(--surface-2); }
+.mini:active { background: var(--surface-2); }
+.session:has(a:active) { background: var(--surface-2); }
+.m-card { transition: scale .15s var(--ease); }
+.m-card:has(.m-card__title a:active) { scale: .97; }
+.tour:active { scale: .97; }
+.sr:active { background: var(--surface-2); }
 @media (max-width: 640px) {
   .daterow { grid-template-columns: 48px minmax(0, 1fr) auto; padding: 12px 14px; gap: 12px; }
   .daterow img { display: none; }
@@ -872,10 +885,10 @@ body.glass-head .header .select { background-color: #fff; }
 .m-row {
   display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 6px 6px 8px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
-  box-shadow: 0 10px 24px -18px rgba(22, 19, 26, .45); transition: scale .15s var(--ease);
+  box-shadow: 0 10px 24px -18px rgba(22, 19, 26, .45); transition: scale .15s var(--ease), background-color .15s;
 }
 .m-row { position: relative; }
-.m-row:has(.m-row__title:active) { scale: .98; }
+.m-row:has(.m-row__title:active) { scale: .97; background: var(--surface-2); }
 .m-row__title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; } /* whole card opens the event */
 .m-row__buy {
   position: relative; z-index: 1; margin: 2px 4px 0; height: 38px; border: 0; border-radius: 99px;
