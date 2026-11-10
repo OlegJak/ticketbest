@@ -343,11 +343,12 @@
     : [g.first.venue, g.first.city].filter(Boolean).join(", "));
 
   // Featured cards: the organisers' slider picks first, then the soonest shows
+  const slideImg = new Map(); // group key → curated wide banner from the slider
   function mobileFeatured(groups) {
     const out = [];
     for (const s of DATA.slides) {
       const g = s.kind === "tour" ? groups.find((x) => x.key === "t:" + s.slug) : groups.find((x) => x.slugs.has(s.slug));
-      if (g && !out.includes(g)) out.push(g);
+      if (g && !out.includes(g)) { out.push(g); slideImg.set(g.key, s.image); }
     }
     for (const g of groups) { if (out.length >= 10) break; if (!out.includes(g)) out.push(g); }
     return out;
@@ -360,7 +361,7 @@
       : `<button type="button" class="m-card__buy" data-buy="${e.i}" aria-label="${esc(t("buy"))}">${I.ticket}</button>`;
     return `<article class="m-card">
       <div class="m-card__media">
-        <img src="${esc(e.poster || e.image)}" alt="" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
+        <img src="${esc(slideImg.get(g.key) || e.image || e.poster)}" alt="" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
         <span class="m-card__count">${i + 1}/${n}</span>
       </div>
       <div class="m-card__body">
@@ -389,6 +390,7 @@
     const featured = state.q ? [] : mobileFeatured(groups);
     const shown = groups.slice(0, mobile.limit);
     main.innerHTML = `<div class="m-home">
+      ${featured.length ? `<div class="m-glow" aria-hidden="true"><i></i><i></i></div>` : ""}
       ${featured.length ? `<section class="m-cards" aria-roledescription="carousel">
         <div class="m-cards__track">${featured.map((g, i) => mCardHTML(g, i, featured.length)).join("")}</div>
       </section>` : ""}
@@ -401,6 +403,23 @@
         ${groups.length > shown.length ? `<div class="more"><button class="btn btn--ghost" data-m-more>${t("showMore")} <small>(${groups.length - shown.length})</small></button></div>` : ""}
       </section>
     </div>`;
+    // Background glow takes the colours of the card in view and cross-fades as you swipe
+    const track = $(".m-cards__track", main), glows = $$(".m-glow i", main);
+    if (track && glows.length) {
+      let front = 0, last = -1;
+      const sync = () => {
+        const step = track.children[1] ? track.children[1].offsetLeft - track.children[0].offsetLeft : 1;
+        const i = Math.max(0, Math.min(track.children.length - 1, Math.round(track.scrollLeft / step)));
+        if (i === last) return;
+        last = i;
+        const next = glows[1 - front];
+        next.style.backgroundImage = `url("${track.children[i].querySelector("img").src}")`;
+        next.classList.add("is-on"); glows[front].classList.remove("is-on");
+        front = 1 - front;
+      };
+      track.addEventListener("scroll", () => requestAnimationFrame(sync), { passive: true });
+      sync();
+    }
     const more = $("[data-m-more]", main);
     if (more) more.onclick = () => { mobile.limit += 12; renderMobileHome(main); };
     const clearQ = $("[data-clear-q]", main);
