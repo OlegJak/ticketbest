@@ -252,6 +252,7 @@
   const I = {
     arrowL: '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>',
     arrowR: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
+    ext: '<svg viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M18 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg>',
     ticket: '<svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v2M13 11v2M13 16v2"/></svg>',
     cal: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-5.8-7-11a7 7 0 0 1 14 0c0 5.2-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
@@ -1054,6 +1055,58 @@
     };
     syncCountrySelect();
   }
+  /* ================================================================ MENU */
+  const MX = {
+    et: { mn_home: "Pealeht", mn_contact: "Kontakt", mn_org: "Korraldajale", mn_faq: "Korduma kippuvad küsimused", mn_country: "Riik" },
+    ru: { mn_home: "Главная", mn_contact: "Контакты", mn_org: "Организаторам", mn_faq: "Частые вопросы", mn_country: "Страна" },
+    en: { mn_home: "Home", mn_contact: "Contact", mn_org: "For organisers", mn_faq: "FAQ", mn_country: "Country" },
+  };
+  Object.keys(MX).forEach((l) => Object.assign(T[l], MX[l]));
+  const MENU_LINKS = [
+    ["mn_home", "#/"],
+    ["mn_contact", "https://ticketbest.eu/kontakty"],
+    ["mn_org", "http://forms.ticketbest.ee/et/pealeht/"],
+    ["mn_faq", "https://ticketbest.eu/chastye-voprosy"],
+  ];
+  const mqMenu = matchMedia("(max-width: 860px)");
+  function renderMenu() {
+    const menu = $("#menu");
+    $(".menu__langs", menu).innerHTML = [["et", "ET"], ["ru", "RU"], ["en", "EN"]]
+      .map(([l, s]) => `<button type="button" class="menu__lang ${l === state.lang ? "is-on" : ""}" data-lang="${l}" aria-pressed="${l === state.lang}">${s}</button>`).join("");
+    $(".menu__links", menu).innerHTML = MENU_LINKS.map(([k, href]) => {
+      const ext = !href.startsWith("#");
+      return `<li><a class="menu__link" href="${href}"${ext ? ' target="_blank" rel="noopener"' : ""}>${esc(t(k))}${ext ? I.ext : ""}</a></li>`;
+    }).join("");
+    const slot = $(".menu__country", menu);
+    slot.dataset.label = t("mn_country");
+  }
+  function initMenu() {
+    const btn = $("#menu-btn"), menu = $("#menu"), country = $(".select--country"), actions = $(".header__actions");
+    const setOpen = (open) => {
+      menu.hidden = !open;
+      btn.setAttribute("aria-expanded", String(open));
+      document.body.classList.toggle("menu-open", open);
+      if (open) document.body.classList.remove("header-hidden");
+    };
+    btn.onclick = () => setOpen(menu.hidden);
+    menu.addEventListener("click", (ev) => {
+      const l = ev.target.closest("[data-lang]");
+      if (l) { const sel = $("#lang"); sel.value = l.dataset.lang; sel.onchange(); renderMenu(); return; }
+      if (ev.target.closest("a")) setOpen(false);
+    });
+    document.addEventListener("click", (ev) => {
+      // (a language button is re-rendered on click, so a detached target still counts as inside)
+      if (!menu.hidden && ev.target.isConnected && !ev.target.closest("#menu, #menu-btn")) setOpen(false);
+    });
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !menu.hidden) { setOpen(false); btn.focus(); } });
+    addEventListener("hashchange", () => setOpen(false));
+    // phone/tablet: the country picker moves into the menu, the header keeps only logo + menu button
+    const placeCountry = () => (mqMenu.matches ? $(".menu__country", menu).append(country) : actions.prepend(country));
+    mqMenu.addEventListener("change", placeCountry);
+    placeCountry();
+    renderMenu();
+  }
+
   function applyStatic() {
     document.documentElement.lang = state.lang;
     $$("[data-i18n]").forEach((el) => (el.textContent = t(el.dataset.i18n)));
@@ -1494,7 +1547,7 @@
       const y = Math.max(0, scrollY), dy = y - lastY;
       lastY = y;
       const searching = document.activeElement === $("#search") || !$("#search-results")?.hidden;
-      if (!mqMobile.matches || y < header.offsetHeight || searching) { travel = 0; return show(); }
+      if (!mqMobile.matches || y < header.offsetHeight || searching || document.body.classList.contains("menu-open")) { travel = 0; return show(); }
       travel = Math.sign(dy) === Math.sign(travel) ? travel + dy : dy;
       if (travel > 12) document.body.classList.add("header-hidden");
       else if (travel < -6) show();
@@ -1503,6 +1556,7 @@
     addEventListener("hashchange", show);
   }
   applyStatic();
+  initMenu();
   initControls();
   initSearch();
   initCookie();

@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/styles.css?v=19">
+  <link rel="stylesheet" href="assets/styles.css?v=20">
 </head>
 <body>
   <a class="skip" href="#main" data-i18n="skip">Sisu juurde</a>
@@ -44,15 +44,24 @@
           <span class="select__label" id="country-label" aria-hidden="true"></span>
           <select id="country" aria-label="Country"></select>
         </label>
-        <label class="select select--lang">
-          <select id="lang" aria-label="Language">
-            <option value="et">EST</option>
-            <option value="ru">RUS</option>
-            <option value="en">ENG</option>
-          </select>
-        </label>
+        <!-- language lives in the menu now; this select keeps the state -->
+        <select id="lang" aria-label="Language" hidden>
+          <option value="et">EST</option>
+          <option value="ru">RUS</option>
+          <option value="en">ENG</option>
+        </select>
+        <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="Menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="menu-btn__open" d="M4 7h16M4 12h16M4 17h10"/><path class="menu-btn__close" d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
       </div>
     </div>
+    <nav class="menu" id="menu" hidden>
+      <div class="menu__inner container">
+        <div class="menu__langs" role="group" aria-label="Language"></div>
+        <div class="menu__country"></div>
+        <ul class="menu__links"></ul>
+      </div>
+    </nav>
   </header>
 
   <main id="main"></main>
@@ -122,7 +131,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="assets/data.js?v=19"></script>
-  <script src="assets/app.js?v=19"></script>
+  <script src="assets/data.js?v=20"></script>
+  <script src="assets/app.js?v=20"></script>
 </body>
 </html>
