@@ -426,7 +426,7 @@ img.is-loading { opacity: 0; }
 }
 .p-hero__pic { display: contents; }
 @media (min-width: 641px) {
-  .p-hero--wide .p-hero__poster { width: 100%; max-width: 1100px; height: auto; max-height: 520px; aspect-ratio: auto; border-radius: var(--radius-lg); }
+  .p-hero--wide .p-hero__poster { width: 100%; max-width: none; height: auto; aspect-ratio: auto; border-radius: var(--radius-lg); }
 }
 .p-hero__title { margin-top: 24px; font-size: clamp(28px, 5vw, 46px); font-weight: 800; letter-spacing: -0.035em; line-height: 1.1; overflow-wrap: anywhere; }
 .p-hero .tour__meta { justify-content: center; margin-top: 14px; }
