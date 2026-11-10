@@ -375,10 +375,8 @@
   function mRowHTML(g) {
     const e = g.first;
     const href = showHref(g);
-    // one show: the button opens checkout right here; a tour/series: it goes to the page to pick a city
-    const action = g.events.length > 1
-      ? `<a class="m-row__buy" href="${esc(href)}">${I.ticket}${t("chooseCity")}</a>`
-      : `<button type="button" class="m-row__buy" data-buy="${e.i}">${I.ticket}${t("buy")}</button>`;
+    // the button leads to the event page (a tour/series: to its page with the cities)
+    const action = `<a class="m-row__buy" href="${esc(href)}">${I.ticket}${t(g.events.length > 1 ? "chooseCity" : "buy")}</a>`;
     return `<article class="m-row">
       <span class="m-row__img"><img src="${esc(e.poster || e.image)}" alt="" loading="lazy"></span>
       <span class="m-row__body">
