@@ -1,5 +1,7 @@
 # Ticket Best Europe — новый дизайн (прототип)
 
+**🔗 Открыть сайт: https://olegjak.github.io/ticketbest/**
+
 Рабочий прототип нового фронтенда для https://ticketbest.eu на реальных данных с текущего сайта.
 Без сборки и зависимостей: чистые HTML, CSS и JS.
 
