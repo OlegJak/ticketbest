@@ -1542,7 +1542,14 @@
   // Phone: the header slides away while scrolling down and comes back on the slightest scroll up
   {
     let lastY = scrollY, travel = 0;
-    const show = () => document.body.classList.remove("header-hidden");
+    const show = () => {
+      if (!document.body.classList.contains("header-hidden")) return;
+      document.body.classList.remove("header-hidden");
+      if (scrollY > header.offsetHeight) { // slide back in from above
+        header.classList.remove("is-back"); void header.offsetWidth; header.classList.add("is-back");
+      }
+    };
+    header.addEventListener("animationend", () => header.classList.remove("is-back"));
     addEventListener("scroll", () => {
       const y = Math.max(0, scrollY), dy = y - lastY;
       lastY = y;
