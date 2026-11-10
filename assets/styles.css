@@ -81,9 +81,12 @@ p { margin: 0; }
   backdrop-filter: saturate(1.6) blur(16px);
   -webkit-backdrop-filter: saturate(1.6) blur(16px);
   border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
-  transition: transform .3s var(--ease);
+  transition: top .3s var(--ease);
 }
-body.header-hidden .header { transform: translateY(-100%); }
+/* Hidden by moving the sticky offset itself above the screen (not a transform):
+   Safari on iOS paints its top bar in the colour of a sticky element touching the top edge,
+   so the header has to really leave the top for the page to show under the address bar. */
+body.header-hidden .header { top: calc(-1 * var(--sticky-top, 120px) - 4px); }
 .header__inner { height: var(--header-h); display: flex; align-items: center; gap: 20px; }
 
 .logo { display: inline-flex; align-items: center; gap: 9px; flex-shrink: 0; }
