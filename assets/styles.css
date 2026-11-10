@@ -396,17 +396,17 @@ img.is-loading { opacity: 0; }
 .cta .btn--light { background: var(--ink); color: #fff; }
 
 /* ---------- Event page ---------- */
-.back { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 10px; border-radius: 99px; background: rgba(255, 255, 255, .85); color: var(--ink); font-weight: 700; font-size: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); margin-bottom: 16px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+.back { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 10px; border-radius: 99px; background: #fff; color: var(--ink); font-weight: 700; font-size: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); margin-bottom: 16px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
 .back:hover { background: #fff; }
 .back svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* Poster page top (event, tour, show): the poster on a glow of its own colours, no dark box */
 .p-hero { position: relative; isolation: isolate; padding: 18px 0 4px; }
 .p-hero__glow {
-  position: absolute; z-index: -1; left: 0; right: 0; top: calc(-1 * var(--sticky-top, 0px)); bottom: -160px;
+  position: absolute; z-index: -1; left: 0; right: 0; top: calc(-1 * var(--sticky-top, 0px)); bottom: 40px; /* fades out before the poster ends: buttons and tags below stay on clean white */
   overflow: hidden; pointer-events: none;
-  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent); mask-image: linear-gradient(180deg, #000 45%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, #000 35%, transparent); mask-image: linear-gradient(180deg, #000 35%, transparent);
 }
-.p-hero__glow img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.4); filter: blur(48px) saturate(2.6) brightness(1.15); opacity: .7; }
+.p-hero__glow img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.4); filter: blur(48px) saturate(2.6) brightness(1.3); opacity: .55; }
 .p-hero__inner { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .p-hero .back { align-self: flex-start; }
 .p-hero__poster {
@@ -415,7 +415,7 @@ img.is-loading { opacity: 0; }
 }
 .p-hero__title { margin-top: 24px; font-size: clamp(28px, 5vw, 46px); font-weight: 800; letter-spacing: -0.035em; line-height: 1.1; overflow-wrap: anywhere; }
 .p-hero .tour__meta { justify-content: center; margin-top: 14px; }
-.p-hero .pill { background: rgba(255, 255, 255, .72); color: var(--ink); border: 1px solid var(--line); }
+.p-hero .pill { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; color: var(--ink); border: 1px solid var(--line); }
 
 .ev {
   display: grid; grid-template-columns: minmax(0, 1fr) 380px; column-gap: 48px; padding-top: 32px; align-items: start;
@@ -745,12 +745,13 @@ html.co-lock, html.co-lock body { overflow: hidden; }
 }
 /* glass header on the phone home: let the glow show through */
 body.glass-head .header {
-  background: color-mix(in srgb, var(--bg) 38%, transparent);
+  background: color-mix(in srgb, var(--bg) 50%, transparent);
   backdrop-filter: saturate(1.8) blur(20px); -webkit-backdrop-filter: saturate(1.8) blur(20px);
   border-bottom-color: color-mix(in srgb, #fff 35%, transparent);
 }
+/* controls stay solid white so the glow never greys them out */
 body.glass-head .header .search__input,
-body.glass-head .header .select { background-color: color-mix(in srgb, #fff 70%, transparent); }
+body.glass-head .header .select { background-color: #fff; }
 .m-glow i {
   position: absolute; inset: -25%; background: center / cover no-repeat;
   filter: blur(42px) saturate(2.8) brightness(1.15); opacity: 0; transition: opacity .8s var(--ease);
@@ -795,13 +796,14 @@ body.glass-head .header .select { background-color: color-mix(in srgb, #fff 70%,
 .m-list { margin-top: 26px; }
 .m-list__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .m-list__head h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
-.m-list__items { display: grid; gap: 18px; }
+/* two posters per row */
+.m-list__items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 12px; }
 .m-list__empty { color: var(--muted); padding: 24px 0; }
-.m-row { display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 16px; align-items: center; }
-.m-row__img { display: block; aspect-ratio: 2 / 3; border-radius: 10px; overflow: hidden; background: var(--surface-2); box-shadow: 0 6px 16px -10px rgba(22, 19, 26, .5); }
+.m-row { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.m-row__img { display: block; aspect-ratio: 2 / 3; border-radius: 14px; overflow: hidden; background: var(--surface-2); box-shadow: 0 6px 16px -10px rgba(22, 19, 26, .5); }
 .m-row__img img { width: 100%; height: 100%; object-fit: cover; }
-.m-row__body { display: grid; gap: 3px; min-width: 0; }
-.m-row__when { font-size: 13px; font-weight: 600; color: var(--muted); }
-.m-row__title { font-size: 17px; font-weight: 800; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.m-row__body { display: grid; gap: 2px; min-width: 0; padding: 0 2px; }
+.m-row__when { font-size: 12px; font-weight: 700; color: var(--accent); }
+.m-row__title { font-size: 15px; font-weight: 800; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .m-row:active .m-row__title { color: var(--accent); }
-.m-row__where { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-row__where { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
