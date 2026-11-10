@@ -377,9 +377,9 @@
     return `<a class="m-row" href="${esc(showHref(g))}">
       <span class="m-row__img"><img src="${esc(e.poster || e.image)}" alt="" loading="lazy"></span>
       <span class="m-row__body">
-        <span class="m-row__when">${esc(groupWhen(g))}</span>
+        <span class="m-row__when">${I.cal}<span>${esc(groupWhen(g))}</span></span>
         <span class="m-row__title">${esc(groupTitle(g))}</span>
-        <span class="m-row__where">${esc(groupWhere(g))}</span>
+        <span class="m-row__where">${I.pin}<span>${esc(groupWhere(g))}</span></span>
       </span>
     </a>`;
   }
