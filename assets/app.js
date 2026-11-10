@@ -127,11 +127,17 @@
     if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
     return many;
   }
-  const LOCALE = { et: "et-EE", ru: "ru-RU", en: "en-GB" };
+  const LOCALE = { et: "et-EE", ru: "ru-RU", en: "en-GB", es: "es-ES", fi: "fi-FI", lv: "lv-LV", lt: "lt-LT" };
+  // [code, label, native name, demo?] — demo languages show English text until translated
+  const LANGS = [
+    ["et", "EST", "Eesti"], ["en", "ENG", "English"], ["ru", "RUS", "Русский"],
+    ["es", "ESP", "Español", 1], ["fi", "FIN", "Suomi", 1], ["lv", "LAT", "Latviešu", 1], ["lt", "LTU", "Lietuvių", 1],
+  ];
+  const isDemoLang = (l) => !!LANGS.find((x) => x[0] === l)?.[3];
 
   /* ----------------------------------------------------------------- state */
   const state = {
-    lang: ["et", "ru", "en"].includes(store.get("tb.lang")) ? store.get("tb.lang") : "et",
+    lang: LANGS.some((x) => x[0] === store.get("tb.lang")) ? store.get("tb.lang") : "et",
     country: store.get("tb.country", "all"),
     cat: "all",
     when: "any",
@@ -139,8 +145,9 @@
     limit: 24,
     view: store.get("tb.view", "grid") === "list" ? "list" : "grid",
   };
-  const t = (k, ...a) => { const v = T[state.lang][k] ?? T.et[k] ?? k; return typeof v === "function" ? v(...a) : v; };
-  const countryName = (c) => T[state.lang].countryNames[c] || c;
+  const dict = () => T[state.lang] || T.en;
+  const t = (k, ...a) => { const v = dict()[k] ?? T.et[k] ?? k; return typeof v === "function" ? v(...a) : v; };
+  const countryName = (c) => dict().countryNames[c] || c;
 
   /* ------------------------------------------------------------ data prep */
   const toDate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
@@ -256,6 +263,7 @@
     ticket: '<svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v2M13 11v2M13 16v2"/></svg>',
     cal: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-7-5.8-7-11a7 7 0 0 1 14 0c0 5.2-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+    globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>',
     user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
     share: '<svg viewBox="0 0 24 24"><path d="M12 3v13M7 8l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>',
     map: '<svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>',
@@ -1084,8 +1092,12 @@
   }
   function initControls() {
     const lang = $("#lang"), country = $("#country");
+    lang.innerHTML = LANGS.map(([l, s]) => `<option value="${l}">${s}</option>`).join("");
     lang.value = state.lang;
-    lang.onchange = () => { state.lang = lang.value; store.set("tb.lang", state.lang); applyStatic(); syncCountrySelect(); route(); };
+    lang.onchange = () => {
+      state.lang = lang.value; store.set("tb.lang", state.lang); applyStatic(); syncCountrySelect(); route();
+      if (isDemoLang(state.lang)) toast("Demo: translation coming soon, showing English for now");
+    };
     country.onchange = () => {
       state.country = country.value; store.set("tb.country", state.country); state.limit = 24;
       syncCountrySelect();
@@ -1111,17 +1123,19 @@
   const mqMenu = matchMedia("(max-width: 860px)");
   function renderMenu() {
     const menu = $("#menu");
-    $(".menu__langs", menu).innerHTML = [["et", "ET"], ["ru", "RU"], ["en", "EN"]]
-      .map(([l, s]) => `<button type="button" class="menu__lang ${l === state.lang ? "is-on" : ""}" data-lang="${l}" aria-pressed="${l === state.lang}">${s}</button>`).join("");
+    $(".menu__langs", menu).innerHTML = LANGS
+      .map(([l, s, name]) => `<button type="button" class="menu__lang ${l === state.lang ? "is-on" : ""}" data-lang="${l}" aria-pressed="${l === state.lang}" title="${esc(name)}">${s}</button>`).join("");
     $(".menu__links", menu).innerHTML = MENU_LINKS.map(([k, href]) => {
       const ext = !href.startsWith("#");
       return `<li><a class="menu__link" href="${href}"${ext ? ' target="_blank" rel="noopener"' : ""}>${esc(t(k))}${ext ? I.ext : ""}</a></li>`;
     }).join("");
     const slot = $(".menu__country", menu);
     slot.dataset.label = t("mn_country");
-    // desktop header: a compact language switch instead of the burger menu
-    $(".hlangs").innerHTML = [["et", "ET"], ["ru", "RU"], ["en", "EN"]]
-      .map(([l, s]) => `<button type="button" class="hlangs__btn ${l === state.lang ? "is-on" : ""}" data-lang="${l}" aria-pressed="${l === state.lang}">${s}</button>`).join("");
+    // desktop header: language dropdown instead of the burger menu
+    const cur = LANGS.find((x) => x[0] === state.lang);
+    $(".hlang").innerHTML = `<button type="button" class="select hlang__btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">${I.globe}<span>${cur[1]}</span></button>
+      <div class="hlang__list" role="listbox" hidden>${LANGS.map(([l, s, name, demo]) =>
+        `<button type="button" class="hlang__opt ${l === state.lang ? "is-on" : ""}" role="option" aria-selected="${l === state.lang}" data-lang="${l}"><b>${s}</b><span>${esc(name)}</span>${demo ? '<i>demo</i>' : ""}</button>`).join("")}</div>`;
   }
   function initMenu() {
     const btn = $("#menu-btn"), menu = $("#menu"), country = $(".select--country"), actions = $(".header__actions");
@@ -1141,10 +1155,23 @@
       // (a language button is re-rendered on click, so a detached target still counts as inside)
       if (!menu.hidden && ev.target.isConnected && !ev.target.closest("#menu, #menu-btn")) setOpen(false);
     });
-    $(".hlangs").addEventListener("click", (ev) => {
+    const hlang = $(".hlang");
+    const setLangOpen = (open) => {
+      const b = $(".hlang__btn", hlang), list = $(".hlang__list", hlang);
+      if (!b || !list) return;
+      list.hidden = !open; b.setAttribute("aria-expanded", String(open));
+    };
+    hlang.addEventListener("click", (ev) => {
       const l = ev.target.closest("[data-lang]");
-      if (l && l.dataset.lang !== state.lang) { const sel = $("#lang"); sel.value = l.dataset.lang; sel.onchange(); renderMenu(); }
+      if (l) {
+        if (l.dataset.lang !== state.lang) { const sel = $("#lang"); sel.value = l.dataset.lang; sel.onchange(); renderMenu(); }
+        else setLangOpen(false);
+        return;
+      }
+      if (ev.target.closest(".hlang__btn")) setLangOpen($(".hlang__list", hlang).hidden);
     });
+    document.addEventListener("click", (ev) => { if (ev.target.isConnected && !ev.target.closest(".hlang")) setLangOpen(false); });
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") setLangOpen(false); });
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !menu.hidden) { setOpen(false); btn.focus(); } });
     addEventListener("hashchange", () => setOpen(false));
     // phone/tablet: the country picker moves into the menu, the header keeps only logo + menu button
@@ -1563,7 +1590,7 @@
     if (co.open) closeCheckout();
     if (lastRoute === "home") homeScroll = scrollY;
     document.body.classList.remove("has-buybar", "glass-head");
-    document.title = "Ticket Best Europe — " + (state.lang === "ru" ? "билеты на концерты и шоу" : state.lang === "en" ? "concert & show tickets" : "piletid kontsertidele ja etendustele");
+    document.title = "Ticket Best Europe — " + (state.lang === "ru" ? "билеты на концерты и шоу" : state.lang === "et" ? "piletid kontsertidele ja etendustele" : "concert & show tickets");
     if (r.name === "event") renderEvent(main, r.slug, r.params);
     else if (r.name === "tour") renderTour(main, r.slug);
     else if (r.name === "show") renderShow(main, r.slug);
