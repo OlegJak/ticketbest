@@ -744,51 +744,49 @@ html.co-lock, html.co-lock body { overflow: hidden; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 
-/* ---------- Mobile home: full-screen poster feed (variant B) ---------- */
-body.feed-mode { overflow: hidden; }
-body.feed-mode .footer { display: none; }
-.feed { position: relative; height: calc(100dvh - var(--sticky-top, 64px)); background: var(--night); color: #fff; display: flex; flex-direction: column; }
-.feed__bar {
-  position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 10px 12px 18px; background: linear-gradient(180deg, rgba(18, 16, 20, .7), transparent); pointer-events: none;
+/* ---------- Mobile home: tall swipe cards + recommended list ---------- */
+.m-home { padding-top: 14px; }
+.m-cards__track {
+  display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+  padding: 0 var(--gutter); scroll-padding: 0 var(--gutter); scrollbar-width: none;
 }
-.feed__tabs { display: flex; gap: 2px; padding: 3px; border-radius: 99px; background: rgba(255, 255, 255, .12); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); pointer-events: auto; }
-.feed__tab { border: 0; background: none; color: rgba(255, 255, 255, .78); font: inherit; font-size: 13px; font-weight: 700; padding: 6px 11px; border-radius: 99px; white-space: nowrap; transition: background-color .2s, color .2s; }
-.feed__tab small { font-size: 11px; font-weight: 700; opacity: .55; margin-left: 4px; }
-.feed__tab[aria-selected="true"] { background: #fff; color: var(--ink); }
-.feed__count { font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, .7); font-variant-numeric: tabular-nums; }
-.feed__query {
-  position: absolute; z-index: 3; top: 52px; left: 12px; border: 0; border-radius: 99px; padding: 5px 12px;
-  background: var(--accent); color: #fff; font: inherit; font-size: 13px; font-weight: 700;
+.m-cards__track::-webkit-scrollbar { display: none; }
+.m-card {
+  position: relative; flex: 0 0 86%; scroll-snap-align: start; display: flex; flex-direction: column;
+  border-radius: 20px; overflow: hidden; background: var(--night); color: #fff;
+  box-shadow: 0 18px 36px -22px rgba(22, 19, 26, .6);
 }
-.feed__track { flex: 1; min-height: 0; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain; scrollbar-width: none; }
-.feed__track::-webkit-scrollbar { display: none; }
-.feed__slide {
-  position: relative; height: 100%; box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always;
-  display: flex; flex-direction: column; overflow: hidden; isolation: isolate;
-  padding: 60px 16px calc(34px + env(safe-area-inset-bottom));
+.m-card__media { position: relative; aspect-ratio: 4 / 5; background: var(--night-2); overflow: hidden; }
+.m-card__media img { width: 100%; height: 100%; object-fit: cover; }
+.m-card__media::after { content: ""; position: absolute; inset: auto 0 0; height: 40%; background: linear-gradient(180deg, transparent, var(--night)); pointer-events: none; }
+.m-card__count {
+  position: absolute; top: 12px; right: 12px; padding: 4px 10px; border-radius: 10px;
+  background: var(--accent); color: #fff; font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums;
 }
-.feed__bg { position: absolute; inset: 0; z-index: -1; }
-.feed__bg img { width: 100%; height: 100%; object-fit: cover; filter: blur(34px) saturate(1.5) brightness(.6); transform: scale(1.35); }
-.feed__bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(18, 16, 20, .15) 35%, rgba(18, 16, 20, .9)); }
-.feed__poster { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
-.feed__poster img { height: 100%; max-width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 16px; box-shadow: 0 28px 60px -18px rgba(0, 0, 0, .75); }
-.feed__info { padding-top: 16px; }
-.feed__when { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
-.feed__title { margin-top: 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.12; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.feed__where { display: flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 13.5px; font-weight: 600; color: rgba(255, 255, 255, .75); }
-.feed__where span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.feed__where svg { width: 15px; height: 15px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; }
-.feed__actions { display: flex; gap: 8px; margin-top: 14px; }
-.feed__buy { flex: 1; justify-content: center; }
-.feed__more { background: rgba(255, 255, 255, .14); color: #fff; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-.feed__end { height: 100%; scroll-snap-align: start; display: grid; place-content: center; gap: 6px; padding: 24px; text-align: center; color: rgba(255, 255, 255, .7); }
-.feed__end b { color: #fff; font-size: 20px; font-weight: 800; }
-.feed__hint {
-  position: absolute; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom)); translate: -50% 0; z-index: 3;
-  display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, .7);
-  pointer-events: none; transition: opacity .3s; animation: feed-nudge 1.6s var(--ease) infinite;
+.m-card__body { position: relative; padding: 12px 70px 16px 16px; display: grid; gap: 5px; }
+.m-card__meta { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .72); min-width: 0; }
+.m-card__meta span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-card__meta svg { width: 15px; height: 15px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.m-card__title { font-size: 19px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.m-card__title a::after { content: ""; position: absolute; inset: -1000px 0 0; } /* whole card is the link */
+.m-card__buy {
+  position: absolute; z-index: 1; right: 14px; top: 50%; translate: 0 -50%;
+  width: 48px; height: 48px; border-radius: 50%; border: 0; display: grid; place-items: center;
+  background: var(--accent); color: #fff; box-shadow: 0 8px 20px -8px rgba(255, 90, 31, .9);
 }
-.feed__hint svg { width: 14px; height: 14px; rotate: -90deg; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.feed__hint.is-gone { opacity: 0; }
-@keyframes feed-nudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.m-card__buy:active { scale: .94; }
+.m-card__buy svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.m-list { margin-top: 26px; }
+.m-list__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.m-list__head h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.m-list__items { display: grid; gap: 16px; }
+.m-list__empty { color: var(--muted); padding: 24px 0; }
+.m-row { display: grid; grid-template-columns: 44% minmax(0, 1fr); gap: 12px; align-items: start; }
+.m-row__img { display: block; aspect-ratio: 16 / 10; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.m-row__img img { width: 100%; height: 100%; object-fit: cover; }
+.m-row__body { display: grid; gap: 3px; min-width: 0; }
+.m-row__when { font-size: 13px; font-weight: 600; color: var(--muted); }
+.m-row__title { font-size: 16px; font-weight: 800; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.m-row:active .m-row__title { color: var(--accent); }
+.m-row__where { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

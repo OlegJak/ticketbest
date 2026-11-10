@@ -272,7 +272,7 @@
 
   /* ================================================================ HOME */
   function renderHome(main) {
-    if (mqMobile.matches) return renderFeed(main);
+    if (mqMobile.matches) return renderMobileHome(main);
     const countriesN = new Set(events.map((e) => e.country)).size;
     const citiesN = new Set(events.map((e) => e.city)).size;
     main.innerHTML = `
@@ -321,84 +321,90 @@
     observeStuck();
   }
 
-  /* ------------------------------------------- MOBILE HOME: full-screen poster feed */
+  /* ------------------------------------------- MOBILE HOME: tall swipe cards + list */
   const mqMobile = matchMedia("(max-width: 640px)");
-  const feed = { tab: "soon", idx: 0 };
+  const mobile = { limit: 12 };
   const FX = {
-    et: { feed_soon: "Peagi", feed_weekend: "Nädalavahetus", feed_tours: "Tuurid", feed_hint: "Libista üles", feed_more: "Lähemalt",
-      feed_pickDate: "Vali kuupäev", feed_empty: "Selles valikus praegu üritusi pole.", feed_end: "Vaatasid kõik läbi!",
-      feed_endSub: "Proovi teist valikut või otsingut.", feed_cities: (n) => `+${n} linna` },
-    ru: { feed_soon: "Скоро", feed_weekend: "Выходные", feed_tours: "Туры", feed_hint: "Листайте вверх", feed_more: "Подробнее",
-      feed_pickDate: "Выбрать дату", feed_empty: "В этой подборке пока нет событий.", feed_end: "Вы всё посмотрели!",
-      feed_endSub: "Попробуйте другую подборку или поиск.", feed_cities: (n) => `ещё ${n} ${ruPlural(n, "город", "города", "городов")}` },
-    en: { feed_soon: "Soon", feed_weekend: "Weekend", feed_tours: "Tours", feed_hint: "Swipe up", feed_more: "Details",
-      feed_pickDate: "Choose date", feed_empty: "Nothing here right now.", feed_end: "You've seen everything!",
-      feed_endSub: "Try another tab or search.", feed_cities: (n) => `+${n} more ${n === 1 ? "city" : "cities"}` },
+    et: { m_recommended: "Soovitame", m_empty: "Selles valikus praegu üritusi pole.", m_cities: (n) => `${n} linna` },
+    ru: { m_recommended: "Рекомендуем", m_empty: "По этому запросу пока нет событий.", m_cities: (n) => `${n} ${ruPlural(n, "город", "города", "городов")}` },
+    en: { m_recommended: "Recommended", m_empty: "Nothing here right now.", m_cities: (n) => `${n} ${n === 1 ? "city" : "cities"}` },
   };
   Object.keys(FX).forEach((l) => Object.assign(T[l], FX[l]));
 
-  function feedGroups(tab) {
+  // Events for the phone home: country + search query
+  function mobileEvents() {
     const words = norm(state.q).split(/\s+/).filter(Boolean);
-    const list = events.filter((e) => (state.country === "all" || e.country === state.country) && words.every((w) => e.search.includes(w)));
-    if (tab === "weekend") { const [a, b] = dateRange("weekend"); return groupShows(list.filter((e) => e.d >= a && e.d <= b)); }
-    const groups = groupShows(list);
-    return tab === "tours" ? groups.filter((g) => g.key.startsWith("t:")) : groups;
+    return events.filter((e) => (state.country === "all" || e.country === state.country) && words.every((w) => e.search.includes(w)));
+  }
+  const groupTitle = (g) => (g.key.startsWith("t:") && tourBySlug.get(g.key.slice(2))?.title) || g.first.title;
+  const groupWhen = (g) => (g.first.date !== g.last.date ? fRange(g.first.d, g.last.d)
+    : `${cap(fWeekday(g.first.d))}, ${fDM(g.first.d)} · ${g.first.time}`);
+  const groupWhere = (g) => (g.cities.length > 1 ? `${g.first.city} · ${t("m_cities", g.cities.length)}`
+    : [g.first.venue, g.first.city].filter(Boolean).join(", "));
+
+  // Featured cards: the organisers' slider picks first, then the soonest shows
+  function mobileFeatured(groups) {
+    const out = [];
+    for (const s of DATA.slides) {
+      const g = s.kind === "tour" ? groups.find((x) => x.key === "t:" + s.slug) : groups.find((x) => x.slugs.has(s.slug));
+      if (g && !out.includes(g)) out.push(g);
+    }
+    for (const g of groups) { if (out.length >= 10) break; if (!out.includes(g)) out.push(g); }
+    return out;
   }
 
-  function feedSlideHTML(g, i) {
-    const e = g.first, multi = g.events.length > 1, href = showHref(g);
-    const title = (g.key.startsWith("t:") && tourBySlug.get(g.key.slice(2))?.title) || e.title;
-    const when = multi ? fRange(e.d, g.last.d) : `${cap(fWeekday(e.d))}, ${fDM(e.d)} · ${e.time}`;
-    const where = g.cities.length > 1 ? `${e.city} · ${t("feed_cities", g.cities.length - 1)}` : [e.venue, e.city].filter(Boolean).join(", ");
-    const action = multi
-      ? `<a class="btn btn--accent feed__buy" href="${esc(href)}">${I.ticket}${g.cities.length > 1 ? t("chooseCity") : t("feed_pickDate")}</a>`
-      : buyLink(e, "btn btn--accent feed__buy", I.ticket + t("buy"));
-    const lazy = i > 1 ? ' loading="lazy"' : "";
-    return `<article class="feed__slide">
-      <div class="feed__bg" aria-hidden="true"><img src="${esc(e.image || e.poster)}" alt=""${lazy}></div>
-      <a class="feed__poster" href="${esc(href)}" tabindex="-1"><img src="${esc(e.poster || e.image)}" alt="${esc(title)}"${lazy}></a>
-      <div class="feed__info">
-        <p class="feed__when">${esc(when)}</p>
-        <h2 class="feed__title"><a href="${esc(href)}">${esc(title)}</a></h2>
-        <p class="feed__where">${I.pin}<span>${esc(where)}</span></p>
-        <div class="feed__actions">${action}<a class="btn feed__more" href="${esc(href)}">${t("feed_more")}</a></div>
+  function mCardHTML(g, i, n) {
+    const e = g.first, href = showHref(g), title = groupTitle(g);
+    const action = g.events.length > 1
+      ? `<a class="m-card__buy" href="${esc(href)}" aria-label="${esc(t("chooseCity"))}">${I.ticket}</a>`
+      : `<button type="button" class="m-card__buy" data-buy="${e.i}" aria-label="${esc(t("buy"))}">${I.ticket}</button>`;
+    return `<article class="m-card">
+      <div class="m-card__media">
+        <img src="${esc(e.poster || e.image)}" alt="" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
+        <span class="m-card__count">${i + 1}/${n}</span>
+      </div>
+      <div class="m-card__body">
+        <p class="m-card__meta">${I.cal}<span>${esc(groupWhen(g))}</span></p>
+        <h3 class="m-card__title"><a href="${esc(href)}">${esc(title)}</a></h3>
+        <p class="m-card__meta">${I.pin}<span>${esc(groupWhere(g))}</span></p>
+        ${action}
       </div>
     </article>`;
   }
 
-  function renderFeed(main) {
-    document.body.classList.add("feed-mode");
-    const tabs = ["soon", "weekend", "tours"];
-    const counts = Object.fromEntries(tabs.map((k) => [k, feedGroups(k).length]));
-    const groups = feedGroups(feed.tab), n = groups.length;
-    main.innerHTML = `<div class="feed">
-      <div class="feed__bar">
-        <div class="feed__tabs" role="tablist">${tabs.map((k) => `<button role="tab" class="feed__tab" data-tab="${k}" aria-selected="${feed.tab === k}">${t("feed_" + k)}${counts[k] ? `<small>${counts[k]}</small>` : ""}</button>`).join("")}</div>
-        <span class="feed__count"></span>
-      </div>
-      ${state.q ? `<button class="feed__query" data-clear-q>«${esc(state.q)}» <span aria-hidden="true">×</span></button>` : ""}
-      <div class="feed__track">
-        ${n ? groups.map(feedSlideHTML).join("") + `<section class="feed__end"><b>${t("feed_end")}</b><p>${t("feed_endSub")}</p></section>`
-          : `<section class="feed__end"><p>${t("feed_empty")}</p></section>`}
-      </div>
-      ${n > 1 ? `<div class="feed__hint" aria-hidden="true">${I.arrowR}${t("feed_hint")}</div>` : ""}
+  function mRowHTML(g) {
+    const e = g.first;
+    return `<a class="m-row" href="${esc(showHref(g))}">
+      <span class="m-row__img"><img src="${esc(e.image || e.poster)}" alt="" loading="lazy"></span>
+      <span class="m-row__body">
+        <span class="m-row__when">${esc(groupWhen(g))}</span>
+        <span class="m-row__title">${esc(groupTitle(g))}</span>
+        <span class="m-row__where">${esc(groupWhere(g))}</span>
+      </span>
+    </a>`;
+  }
+
+  function renderMobileHome(main) {
+    const groups = groupShows(mobileEvents());
+    const featured = state.q ? [] : mobileFeatured(groups);
+    const shown = groups.slice(0, mobile.limit);
+    main.innerHTML = `<div class="m-home">
+      ${featured.length ? `<section class="m-cards" aria-roledescription="carousel">
+        <div class="m-cards__track">${featured.map((g, i) => mCardHTML(g, i, featured.length)).join("")}</div>
+      </section>` : ""}
+      <section class="m-list container">
+        <div class="m-list__head">
+          <h2>${state.q ? `«${esc(state.q)}»` : t("m_recommended")}</h2>
+          ${state.q ? `<button class="chip" data-clear-q>${t("reset")} ×</button>` : ""}
+        </div>
+        ${groups.length ? `<div class="m-list__items">${shown.map(mRowHTML).join("")}</div>` : `<p class="m-list__empty">${t("m_empty")}</p>`}
+        ${groups.length > shown.length ? `<div class="more"><button class="btn btn--ghost" data-m-more>${t("showMore")} <small>(${groups.length - shown.length})</small></button></div>` : ""}
+      </section>
     </div>`;
-    const track = $(".feed__track", main), count = $(".feed__count", main), hint = $(".feed__hint", main);
-    const sync = () => {
-      const i = Math.round(track.scrollTop / track.clientHeight);
-      feed.idx = i;
-      count.textContent = n && i < n ? `${i + 1} / ${n}` : "";
-      if (i > 0) hint?.classList.add("is-gone");
-    };
-    track.addEventListener("scroll", () => requestAnimationFrame(sync), { passive: true });
-    if (feed.idx) track.scrollTop = feed.idx * track.clientHeight;
-    sync();
-    $$("[data-tab]", main).forEach((b) => (b.onclick = () => {
-      if (feed.tab === b.dataset.tab) { track.scrollTo({ top: 0, behavior: "smooth" }); return; }
-      feed.tab = b.dataset.tab; feed.idx = 0; renderFeed(main);
-    }));
+    const more = $("[data-m-more]", main);
+    if (more) more.onclick = () => { mobile.limit += 12; renderMobileHome(main); };
     const clearQ = $("[data-clear-q]", main);
-    if (clearQ) clearQ.onclick = () => { state.q = ""; $("#search").value = ""; feed.idx = 0; renderFeed(main); };
+    if (clearQ) clearQ.onclick = () => { state.q = ""; $("#search").value = ""; mobile.limit = 12; renderMobileHome(main); scrollTo(0, 0); };
   }
 
   function carouselHTML() {
@@ -877,7 +883,7 @@
     };
     function applyQuery(q) {
       state.q = q; state.limit = 24; close(); input.blur();
-      if (mqMobile.matches) { feed.idx = 0; if (getRoute().name !== "home") location.hash = "#/"; else route(); }
+      if (mqMobile.matches) { mobile.limit = 12; if (getRoute().name !== "home") location.hash = "#/"; else { route(); scrollTo(0, 0); } }
       else if (getRoute().name !== "home") { location.hash = "#/"; pendingScroll = "#afisha"; }
       else { renderFilters(); renderResults(); $("#afisha")?.scrollIntoView({ behavior: "smooth" }); }
     }
@@ -924,7 +930,7 @@
     country.onchange = () => {
       state.country = country.value; store.set("tb.country", state.country); state.limit = 24;
       syncCountrySelect();
-      if (mqMobile.matches) { feed.idx = 0; if (getRoute().name !== "home") location.hash = "#/"; else route(); }
+      if (mqMobile.matches) { mobile.limit = 12; if (getRoute().name !== "home") location.hash = "#/"; else { route(); scrollTo(0, 0); } }
       else if (getRoute().name !== "home") { location.hash = "#/"; pendingScroll = "#afisha"; }
       else { renderFilters(); renderResults(); $("#afisha")?.scrollIntoView({ behavior: "smooth" }); }
     };
@@ -1338,7 +1344,7 @@
     const r = getRoute(), main = $("#main");
     if (co.open) closeCheckout();
     if (lastRoute === "home") homeScroll = scrollY;
-    document.body.classList.remove("has-buybar", "feed-mode");
+    document.body.classList.remove("has-buybar");
     document.title = "Ticket Best Europe — " + (state.lang === "ru" ? "билеты на концерты и шоу" : state.lang === "en" ? "concert & show tickets" : "piletid kontsertidele ja etendustele");
     if (r.name === "event") renderEvent(main, r.slug, r.params);
     else if (r.name === "tour") renderTour(main, r.slug);
