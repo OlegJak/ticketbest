@@ -1097,9 +1097,9 @@
   }
   /* ================================================================ MENU */
   const MX = {
-    et: { mn_home: "Pealeht", mn_contact: "Kontakt", mn_org: "Korraldajale", mn_faq: "Korduma kippuvad küsimused", mn_faq_s: "KKK", mn_country: "Riik" },
-    ru: { mn_home: "Главная", mn_contact: "Контакты", mn_org: "Организаторам", mn_faq: "Частые вопросы", mn_faq_s: "Вопросы", mn_country: "Страна" },
-    en: { mn_home: "Home", mn_contact: "Contact", mn_org: "For organisers", mn_faq: "FAQ", mn_faq_s: "FAQ", mn_country: "Country" },
+    et: { mn_home: "Pealeht", mn_contact: "Kontakt", mn_org: "Korraldajale", mn_faq: "Korduma kippuvad küsimused", mn_country: "Riik" },
+    ru: { mn_home: "Главная", mn_contact: "Контакты", mn_org: "Организаторам", mn_faq: "Частые вопросы", mn_country: "Страна" },
+    en: { mn_home: "Home", mn_contact: "Contact", mn_org: "For organisers", mn_faq: "FAQ", mn_country: "Country" },
   };
   Object.keys(MX).forEach((l) => Object.assign(T[l], MX[l]));
   const MENU_LINKS = [
@@ -1119,9 +1119,7 @@
     }).join("");
     const slot = $(".menu__country", menu);
     slot.dataset.label = t("mn_country");
-    // desktop header: the same links inline (logo already goes home) and a compact language switch
-    $(".hnav").innerHTML = MENU_LINKS.filter(([k]) => k !== "mn_home").map(([k, href]) =>
-      `<a class="hnav__link" href="${href}" target="_blank" rel="noopener">${esc(t(k === "mn_faq" ? "mn_faq_s" : k))}</a>`).join("");
+    // desktop header: a compact language switch instead of the burger menu
     $(".hlangs").innerHTML = [["et", "ET"], ["ru", "RU"], ["en", "EN"]]
       .map(([l, s]) => `<button type="button" class="hlangs__btn ${l === state.lang ? "is-on" : ""}" data-lang="${l}" aria-pressed="${l === state.lang}">${s}</button>`).join("");
   }
@@ -1150,7 +1148,7 @@
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !menu.hidden) { setOpen(false); btn.focus(); } });
     addEventListener("hashchange", () => setOpen(false));
     // phone/tablet: the country picker moves into the menu, the header keeps only logo + menu button
-    const placeCountry = () => (mqMenu.matches ? $(".menu__country", menu).append(country) : $(".hnav", actions).after(country));
+    const placeCountry = () => (mqMenu.matches ? $(".menu__country", menu).append(country) : actions.prepend(country));
     mqMenu.addEventListener("change", placeCountry);
     placeCountry();
     renderMenu();

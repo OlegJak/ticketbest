@@ -130,16 +130,10 @@ p { margin: 0; }
 
 .header__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-/* ---------- Desktop header nav: links + language switch, no burger ---------- */
-.hnav, .hlangs { display: none; }
+/* ---------- Desktop header: language switch, no burger ---------- */
+.hlangs { display: none; }
 @media (min-width: 1100px) {
   .menu-btn, .menu { display: none !important; }
-  .hnav { display: flex; align-items: center; gap: 2px; margin-right: 6px; }
-  .hnav__link {
-    height: 40px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 99px;
-    font-size: 14px; font-weight: 700; color: var(--ink-2); white-space: nowrap; transition: background-color .15s, color .15s;
-  }
-  .hnav__link:hover { background: var(--surface-2); color: var(--ink); }
   .hlangs { display: flex; padding: 3px; gap: 2px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); }
   .hlangs__btn {
     height: 32px; min-width: 38px; padding: 0 10px; border: 0; border-radius: 99px; background: transparent;
