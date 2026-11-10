@@ -343,12 +343,11 @@
     : [g.first.venue, g.first.city].filter(Boolean).join(", "));
 
   // Featured cards: the organisers' slider picks first, then the soonest shows
-  const slideImg = new Map(); // group key → curated wide banner from the slider
   function mobileFeatured(groups) {
     const out = [];
     for (const s of DATA.slides) {
       const g = s.kind === "tour" ? groups.find((x) => x.key === "t:" + s.slug) : groups.find((x) => x.slugs.has(s.slug));
-      if (g && !out.includes(g)) { out.push(g); slideImg.set(g.key, s.image); }
+      if (g && !out.includes(g)) out.push(g);
     }
     for (const g of groups) { if (out.length >= 10) break; if (!out.includes(g)) out.push(g); }
     return out;
@@ -361,8 +360,7 @@
       : `<button type="button" class="m-card__buy" data-buy="${e.i}" aria-label="${esc(t("buy"))}">${I.ticket}</button>`;
     return `<article class="m-card">
       <div class="m-card__media">
-        <img class="m-card__fill" src="${esc(slideImg.get(g.key) || e.image || e.poster)}" alt="" aria-hidden="true" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
-        <img class="m-card__img" src="${esc(slideImg.get(g.key) || e.image || e.poster)}" alt="" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
+        <img class="m-card__img" src="${esc(e.poster || e.image)}" alt="" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
         <span class="m-card__count">${i + 1}/${n}</span>
       </div>
       <div class="m-card__body">
@@ -377,7 +375,7 @@
   function mRowHTML(g) {
     const e = g.first;
     return `<a class="m-row" href="${esc(showHref(g))}">
-      <span class="m-row__img"><img src="${esc(e.image || e.poster)}" alt="" loading="lazy"></span>
+      <span class="m-row__img"><img src="${esc(e.poster || e.image)}" alt="" loading="lazy"></span>
       <span class="m-row__body">
         <span class="m-row__when">${esc(groupWhen(g))}</span>
         <span class="m-row__title">${esc(groupTitle(g))}</span>
@@ -450,10 +448,14 @@
     </div>`;
     // Background glow takes the colours of the card in view and cross-fades as you swipe
     const track = $(".m-cards__track", main), glows = $$(".m-glow i", main);
+    document.body.classList.toggle("m-home-mode", !!glows.length);
+    const hdr = $(".header");
+    if (hdr) main.style.setProperty("--m-hdr", hdr.offsetHeight + "px");
     if (track && glows.length) {
       let front = 0, last = -1;
       const sync = () => {
         const step = track.children[1] ? track.children[1].offsetLeft - track.children[0].offsetLeft : 1;
+        if (!track.isConnected || !step) return; // page re-rendered or hidden mid-scroll
         const i = Math.max(0, Math.min(track.children.length - 1, Math.round(track.scrollLeft / step)));
         if (i === last) return;
         last = i;
@@ -550,7 +552,7 @@
     let lastIdx = -1, swapT;
     const sync = () => {
       const i0 = Math.max(0, Math.min(n - 1, idx()));
-      if (i0 === lastIdx) return;
+      if (!root.isConnected || Number.isNaN(i0) || i0 === lastIdx) return; // re-rendered or hidden mid-scroll
       const first = lastIdx < 0;
       lastIdx = i0;
       dots.forEach((d, i) => d.setAttribute("aria-current", i === i0 ? "true" : "false"));
@@ -585,9 +587,8 @@
     if (!list.length) return "";
     const cities = new Set(list.map((e) => e.city)).size;
     const range = rangeLabel(list);
-    const img = tr.image || list[0].image || list[0].poster;
-    return `<a class="tour ${tr.image ? "" : "tour--fallback"}" href="#/t/${esc(tr.slug)}">
-      <img src="${esc(img)}" alt="" loading="lazy">
+    return `<a class="tour" href="#/t/${esc(tr.slug)}">
+      <img src="${esc(list[0].poster || tr.image)}" alt="" loading="lazy">
       <div class="tour__body">
         <h3 class="tour__title">${esc(tr.title)}</h3>
         <div class="tour__meta"><span class="pill">${range}</span><span class="pill">${t("tourDates", list.length, cities)}</span></div>
@@ -752,12 +753,13 @@
     main.innerHTML = `
       <div class="page">
         <section class="ev-hero">
-          <div class="ev-hero__bg"><img src="${esc(cur.image || cur.poster)}" alt=""></div>
+          <div class="ev-hero__bg"><img src="${esc(cur.poster || cur.image)}" alt=""></div>
           <div class="container">
             <button class="back" data-back>${I.arrowL}${t("back")}</button>
-            ${cur.image
-              ? `<div class="ev-hero__media"><img src="${esc(cur.image)}" alt="${esc(cur.title)}"></div>`
-              : `<div class="ev-hero__media ev-hero__media--poster"><img src="${esc(cur.poster)}" alt="${esc(cur.title)}"></div>`}
+            <div class="ev-hero__media">
+              <img class="ev-hero__blur" src="${esc(cur.poster || cur.image)}" alt="" aria-hidden="true">
+              <img class="ev-hero__poster" src="${esc(cur.poster || cur.image)}" alt="${esc(cur.title)}">
+            </div>
           </div>
         </section>
 
@@ -884,11 +886,14 @@
     main.innerHTML = `
       <div class="page container">
         <section class="tour-hero">
-          <img src="${esc(image || list[0].poster)}" alt="" ${image ? "" : 'class="is-blurred"'}>
+          <img class="tour-hero__bg" src="${esc(list[0].poster || image)}" alt="" aria-hidden="true">
           <button class="back" data-back>${I.arrowL}${t("back")}</button>
           <div class="tour-hero__body">
-            <h1>${esc(title)}</h1>
-            <div class="tour__meta"><span class="pill">${esc(range)}</span><span class="pill">${t("tourDates", list.length, cities)}</span><span class="pill">${esc(countries)}</span></div>
+            <img class="tour-hero__poster" src="${esc(list[0].poster || image)}" alt="${esc(title)}">
+            <div>
+              <h1>${esc(title)}</h1>
+              <div class="tour__meta"><span class="pill">${esc(range)}</span><span class="pill">${t("tourDates", list.length, cities)}</span><span class="pill">${esc(countries)}</span></div>
+            </div>
           </div>
         </section>
         <div class="dates">
@@ -1409,7 +1414,7 @@
     const r = getRoute(), main = $("#main");
     if (co.open) closeCheckout();
     if (lastRoute === "home") homeScroll = scrollY;
-    document.body.classList.remove("has-buybar");
+    document.body.classList.remove("has-buybar", "m-home-mode");
     document.title = "Ticket Best Europe — " + (state.lang === "ru" ? "билеты на концерты и шоу" : state.lang === "en" ? "concert & show tickets" : "piletid kontsertidele ja etendustele");
     if (r.name === "event") renderEvent(main, r.slug, r.params);
     else if (r.name === "tour") renderTour(main, r.slug);
