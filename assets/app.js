@@ -374,14 +374,20 @@
 
   function mRowHTML(g) {
     const e = g.first;
-    return `<a class="m-row" href="${esc(showHref(g))}">
+    const href = showHref(g);
+    // one show: the button opens checkout right here; a tour/series: it goes to the page to pick a city
+    const action = g.events.length > 1
+      ? `<a class="m-row__buy" href="${esc(href)}">${I.ticket}${t("chooseCity")}</a>`
+      : `<button type="button" class="m-row__buy" data-buy="${e.i}">${I.ticket}${t("buy")}</button>`;
+    return `<article class="m-row">
       <span class="m-row__img"><img src="${esc(e.poster || e.image)}" alt="" loading="lazy"></span>
       <span class="m-row__body">
         <span class="m-row__when">${I.cal}<span>${esc(groupWhen(g))}</span></span>
-        <span class="m-row__title">${esc(groupTitle(g))}</span>
+        <a class="m-row__title" href="${esc(href)}">${esc(groupTitle(g))}</a>
         <span class="m-row__where">${I.pin}<span>${esc(groupWhere(g))}</span></span>
       </span>
-    </a>`;
+      ${action}
+    </article>`;
   }
 
   let mCardsTimer;

@@ -816,11 +816,21 @@ body.glass-head .header .select { background-color: #fff; }
 .m-list__empty { color: var(--muted); padding: 24px 0; }
 /* each item is a card: poster inside a white tile with the text under it */
 .m-row {
-  display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 6px 6px 12px;
+  display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 6px 6px 8px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
   box-shadow: 0 10px 24px -18px rgba(22, 19, 26, .45); transition: scale .15s var(--ease);
 }
-.m-row:active { scale: .98; }
+.m-row { position: relative; }
+.m-row:has(.m-row__title:active) { scale: .98; }
+.m-row__title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; } /* whole card opens the event */
+.m-row__buy {
+  position: relative; z-index: 1; margin: 2px 4px 0; height: 38px; border: 0; border-radius: 99px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  background: var(--accent); color: #fff; font: inherit; font-size: 14px; font-weight: 800;
+  box-shadow: 0 8px 18px -10px rgba(255, 90, 31, .9);
+}
+.m-row__buy:active { scale: .96; }
+.m-row__buy svg { width: 17px; height: 17px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .m-row__img { display: block; aspect-ratio: 2 / 3; border-radius: 13px; overflow: hidden; background: var(--surface-2); }
 .m-row__img img { width: 100%; height: 100%; object-fit: cover; }
 .m-row__body { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0 6px; }
@@ -829,6 +839,6 @@ body.glass-head .header .select { background-color: #fff; }
 .m-row__when svg, .m-row__where svg { width: 14px; height: 14px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .m-row__when { font-weight: 700; color: var(--accent); }
 .m-row__title { font-size: 15px; font-weight: 800; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.m-row:active .m-row__title { color: var(--accent); }
+.m-row__title:active { color: var(--accent); }
 .m-row__where { margin-top: auto; padding-top: 4px; font-weight: 600; color: var(--muted); }
 .m-row__where svg { color: var(--accent); }
