@@ -1485,6 +1485,23 @@
   const setStickyTop = () => document.documentElement.style.setProperty("--sticky-top", header.offsetHeight + "px");
   new ResizeObserver(setStickyTop).observe(header);
   setStickyTop();
+
+  // Phone: the header slides away while scrolling down and comes back on the slightest scroll up
+  {
+    let lastY = scrollY, travel = 0;
+    const show = () => document.body.classList.remove("header-hidden");
+    addEventListener("scroll", () => {
+      const y = Math.max(0, scrollY), dy = y - lastY;
+      lastY = y;
+      const searching = document.activeElement === $("#search") || !$("#search-results")?.hidden;
+      if (!mqMobile.matches || y < header.offsetHeight || searching) { travel = 0; return show(); }
+      travel = Math.sign(dy) === Math.sign(travel) ? travel + dy : dy;
+      if (travel > 12) document.body.classList.add("header-hidden");
+      else if (travel < -6) show();
+    }, { passive: true });
+    mqMobile.addEventListener("change", show);
+    addEventListener("hashchange", show);
+  }
   applyStatic();
   initControls();
   initSearch();
