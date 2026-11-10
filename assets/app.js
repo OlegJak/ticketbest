@@ -384,47 +384,84 @@
     </a>`;
   }
 
-  // Swipe cards: always come to rest on a card, and advance on their own
   let mCardsTimer;
-  function initMobileCards(track) {
+  // Own swipe instead of native scroll-snap: iOS momentum + snap kept leaving cards half-way.
+  // The track moves with the finger (transform), and on release always lands on a card: one card per flick.
+  function initMobileCards(track, onChange) {
     const cards = [...track.children];
-    const pos = (i) => cards[i].offsetLeft - cards[0].offsetLeft;
-    const cur = () => {
-      let best = 0;
-      cards.forEach((_, i) => { if (Math.abs(pos(i) - track.scrollLeft) < Math.abs(pos(best) - track.scrollLeft)) best = i; });
-      return best;
+    const view = track.parentElement;
+    let idx = 0, x = 0, maxX = 0;
+    const pos = (i) => Math.min(cards[i].offsetLeft - cards[0].offsetLeft, maxX);
+    const measure = () => {
+      const pad = parseFloat(getComputedStyle(track).paddingLeft) || 0, lastC = cards[cards.length - 1];
+      const span = lastC.offsetLeft + lastC.offsetWidth - cards[0].offsetLeft;
+      maxX = Math.max(0, span - (view.clientWidth - 2 * pad)); // last card ends at the right gutter
     };
-    const goTo = (i) => track.scrollTo({ left: pos((i + cards.length) % cards.length), behavior: "smooth" });
-
-    // CSS snapping sometimes leaves a card half-way (slow drags, momentum on iOS).
-    // When scrolling has been quiet for a moment and no finger is down, finish the move ourselves.
-    let touching = false, settleT;
-    const settle = () => {
-      clearTimeout(settleT);
-      settleT = setTimeout(() => {
-        if (touching || !track.isConnected) return;
-        const i = cur();
-        if (Math.abs(track.scrollLeft - pos(i)) > 2) goTo(i);
-      }, 160);
+    const setX = (v, animate) => {
+      x = v;
+      track.style.transition = animate ? "transform .5s cubic-bezier(.22, .8, .24, 1)" : "none";
+      track.style.transform = `translate3d(${-v}px, 0, 0)`;
     };
-    track.addEventListener("scroll", settle, { passive: true });
+    const goTo = (i, animate = true) => {
+      idx = (i + cards.length) % cards.length;
+      setX(pos(idx), animate);
+      onChange && onChange(idx);
+    };
+    measure(); goTo(0, false);
 
-    // Autoplay every 5 s; any touch pauses it for 8 s
-    let pausedUntil = 0;
+    let drag = null, moved = false, pausedUntil = 0;
     const hold = () => { pausedUntil = Date.now() + 8000; };
-    track.addEventListener("touchstart", () => { touching = true; hold(); }, { passive: true });
-    track.addEventListener("touchend", () => { touching = false; hold(); settle(); }, { passive: true });
-    track.addEventListener("touchcancel", () => { touching = false; settle(); }, { passive: true });
-    track.addEventListener("pointerdown", hold);
-    track.addEventListener("wheel", hold, { passive: true });
+    track.addEventListener("pointerdown", (ev) => {
+      if (ev.pointerType === "mouse" && ev.button !== 0) return;
+      measure(); hold();
+      drag = { id: ev.pointerId, x0: ev.clientX, y0: ev.clientY, start: x, horiz: null, samples: [[ev.timeStamp, ev.clientX]] };
+      moved = false;
+    });
+    track.addEventListener("pointermove", (ev) => {
+      if (!drag || ev.pointerId !== drag.id) return;
+      const dx = ev.clientX - drag.x0, dy = ev.clientY - drag.y0;
+      if (drag.horiz === null) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        drag.horiz = Math.abs(dx) > Math.abs(dy);
+        if (!drag.horiz) { drag = null; return; } // vertical: let the page scroll
+        try { track.setPointerCapture(ev.pointerId); } catch {}
+        moved = true;
+      }
+      let v = drag.start - dx;
+      if (v < 0) v *= 0.35; else if (v > maxX) v = maxX + (v - maxX) * 0.35; // rubber band at the ends
+      setX(v, false);
+      drag.samples.push([ev.timeStamp, ev.clientX]);
+      if (drag.samples.length > 6) drag.samples.shift();
+    });
+    const end = (ev) => {
+      if (!drag || ev.pointerId !== drag.id) return;
+      const d = drag; drag = null; hold();
+      if (!d.horiz) return;
+      const [t0, x0] = d.samples[0], [t1, x1] = d.samples[d.samples.length - 1];
+      const vel = t1 > t0 ? (x1 - x0) / (t1 - t0) : 0; // px/ms, + = finger moving right
+      const dx = ev.clientX - d.x0, w = cards[0].offsetWidth;
+      let next = idx;
+      if (vel < -0.3 || dx < -w * 0.2) next = idx + 1;
+      else if (vel > 0.3 || dx > w * 0.2) next = idx - 1;
+      next = Math.max(0, Math.min(cards.length - 1, next));
+      if (next === idx && pos(next) === pos(cards.length - 1) && next < cards.length - 1 && dx < 0) next = cards.length - 1;
+      goTo(next);
+    };
+    track.addEventListener("pointerup", end);
+    track.addEventListener("pointercancel", end);
+    // A swipe must not open the card it started on
+    track.addEventListener("click", (ev) => { if (moved) { ev.preventDefault(); ev.stopPropagation(); moved = false; } }, true);
+    addEventListener("resize", () => { if (track.isConnected) { measure(); goTo(idx, false); } });
+
+    // Autoplay every 5 s; touching pauses it for 8 s
     clearInterval(mCardsTimer);
     if (cards.length < 2 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     mCardsTimer = setInterval(() => {
       if (!track.isConnected) { clearInterval(mCardsTimer); return; }
-      if (document.hidden || touching || co.open || Date.now() < pausedUntil) return;
+      if (document.hidden || drag || co.open || Date.now() < pausedUntil) return;
       const r = track.getBoundingClientRect();
       if (r.bottom < 0 || r.top > innerHeight) return; // not on screen
-      goTo(cur() + 1);
+      goTo(idx + 1);
     }, 5000);
   }
 
@@ -432,10 +469,16 @@
     const groups = groupShows(mobileEvents());
     const featured = state.q ? [] : mobileFeatured(groups);
     const shown = groups.slice(0, mobile.limit);
+    const evs = mobileEvents();
+    const tours = state.q ? [] : DATA.tours.filter((tr) => evs.some((e) => e.tour === tr.slug));
     main.innerHTML = `<div class="m-home">
       ${featured.length ? `<div class="m-glow" aria-hidden="true"><i></i><i></i></div>` : ""}
       ${featured.length ? `<section class="m-cards" aria-roledescription="carousel">
         <div class="m-cards__track">${featured.map((g, i) => mCardHTML(g, i, featured.length)).join("")}</div>
+      </section>` : ""}
+      ${tours.length ? `<section class="m-tours container">
+        <div class="m-list__head"><h2>${t("tours")}</h2></div>
+        <div class="tours">${tours.map(tourCardHTML).join("")}</div>
       </section>` : ""}
       <section class="m-list container">
         <div class="m-list__head">
@@ -451,23 +494,16 @@
     document.body.classList.toggle("m-home-mode", !!glows.length);
     const hdr = $(".header");
     if (hdr) main.style.setProperty("--m-hdr", hdr.offsetHeight + "px");
-    if (track && glows.length) {
-      let front = 0, last = -1;
-      const sync = () => {
-        const step = track.children[1] ? track.children[1].offsetLeft - track.children[0].offsetLeft : 1;
-        if (!track.isConnected || !step) return; // page re-rendered or hidden mid-scroll
-        const i = Math.max(0, Math.min(track.children.length - 1, Math.round(track.scrollLeft / step)));
-        if (i === last) return;
-        last = i;
-        const next = glows[1 - front];
-        next.style.backgroundImage = `url("${track.children[i].querySelector("img").src}")`;
-        next.classList.add("is-on"); glows[front].classList.remove("is-on");
-        front = 1 - front;
-      };
-      track.addEventListener("scroll", () => requestAnimationFrame(sync), { passive: true });
-      sync();
-    }
-    if (track) initMobileCards(track);
+    let front = 0, last = -1;
+    const glowTo = (i) => {
+      if (!glows.length || i === last || !track.children[i]) return;
+      last = i;
+      const next = glows[1 - front];
+      next.style.backgroundImage = `url("${track.children[i].querySelector("img").src}")`;
+      next.classList.add("is-on"); glows[front].classList.remove("is-on");
+      front = 1 - front;
+    };
+    if (track) initMobileCards(track, glowTo);
     const more = $("[data-m-more]", main);
     if (more) more.onclick = () => { mobile.limit += 12; renderMobileHome(main); };
     const clearQ = $("[data-clear-q]", main);
