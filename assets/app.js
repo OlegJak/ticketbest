@@ -361,7 +361,8 @@
       : `<button type="button" class="m-card__buy" data-buy="${e.i}" aria-label="${esc(t("buy"))}">${I.ticket}</button>`;
     return `<article class="m-card">
       <div class="m-card__media">
-        <img src="${esc(slideImg.get(g.key) || e.image || e.poster)}" alt="" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
+        <img class="m-card__fill" src="${esc(slideImg.get(g.key) || e.image || e.poster)}" alt="" aria-hidden="true" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
+        <img class="m-card__img" src="${esc(slideImg.get(g.key) || e.image || e.poster)}" alt="" ${i > 1 ? 'loading="lazy"' : ""} draggable="false">
         <span class="m-card__count">${i + 1}/${n}</span>
       </div>
       <div class="m-card__body">
@@ -383,6 +384,50 @@
         <span class="m-row__where">${esc(groupWhere(g))}</span>
       </span>
     </a>`;
+  }
+
+  // Swipe cards: always come to rest on a card, and advance on their own
+  let mCardsTimer;
+  function initMobileCards(track) {
+    const cards = [...track.children];
+    const pos = (i) => cards[i].offsetLeft - cards[0].offsetLeft;
+    const cur = () => {
+      let best = 0;
+      cards.forEach((_, i) => { if (Math.abs(pos(i) - track.scrollLeft) < Math.abs(pos(best) - track.scrollLeft)) best = i; });
+      return best;
+    };
+    const goTo = (i) => track.scrollTo({ left: pos((i + cards.length) % cards.length), behavior: "smooth" });
+
+    // CSS snapping sometimes leaves a card half-way (slow drags, momentum on iOS).
+    // When scrolling has been quiet for a moment and no finger is down, finish the move ourselves.
+    let touching = false, settleT;
+    const settle = () => {
+      clearTimeout(settleT);
+      settleT = setTimeout(() => {
+        if (touching || !track.isConnected) return;
+        const i = cur();
+        if (Math.abs(track.scrollLeft - pos(i)) > 2) goTo(i);
+      }, 160);
+    };
+    track.addEventListener("scroll", settle, { passive: true });
+
+    // Autoplay every 5 s; any touch pauses it for 8 s
+    let pausedUntil = 0;
+    const hold = () => { pausedUntil = Date.now() + 8000; };
+    track.addEventListener("touchstart", () => { touching = true; hold(); }, { passive: true });
+    track.addEventListener("touchend", () => { touching = false; hold(); settle(); }, { passive: true });
+    track.addEventListener("touchcancel", () => { touching = false; settle(); }, { passive: true });
+    track.addEventListener("pointerdown", hold);
+    track.addEventListener("wheel", hold, { passive: true });
+    clearInterval(mCardsTimer);
+    if (cards.length < 2 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    mCardsTimer = setInterval(() => {
+      if (!track.isConnected) { clearInterval(mCardsTimer); return; }
+      if (document.hidden || touching || co.open || Date.now() < pausedUntil) return;
+      const r = track.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > innerHeight) return; // not on screen
+      goTo(cur() + 1);
+    }, 5000);
   }
 
   function renderMobileHome(main) {
@@ -420,6 +465,7 @@
       track.addEventListener("scroll", () => requestAnimationFrame(sync), { passive: true });
       sync();
     }
+    if (track) initMobileCards(track);
     const more = $("[data-m-more]", main);
     if (more) more.onclick = () => { mobile.limit += 12; renderMobileHome(main); };
     const clearQ = $("[data-clear-q]", main);
