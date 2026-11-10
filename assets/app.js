@@ -297,8 +297,12 @@
           <div class="container">
             <div class="section__head">
               <div><h2 class="section__title">${t("tours")}</h2><p class="section__sub">${t("toursSub")}</p></div>
+              <div class="rail-nav">
+                <button class="rail-nav__btn" data-rail="-1" aria-label="Previous">${I.arrowL}</button>
+                <button class="rail-nav__btn" data-rail="1" aria-label="Next">${I.arrowR}</button>
+              </div>
             </div>
-            <div class="tours">${DATA.tours.map((tr) => tourCardHTML(tr)).join("")}</div>
+            <div class="trail">${DATA.tours.map(tourTileHTML).join("")}</div>
           </div>
         </section>
 
@@ -317,6 +321,7 @@
         </section>
       </div>`;
     initCarousel($(".carousel", main));
+    initRail($(".trail", main), main);
     renderFilters();
     renderResults();
     observeStuck();
@@ -636,6 +641,41 @@
         <div class="tour__meta"><span class="pill">${range}</span><span class="pill">${t("tourDates", list.length, cities)}</span></div>
       </div>
     </a>`;
+  }
+
+  // Desktop tour tile: white card, the organiser's wide banner shown whole
+  function tourTileHTML(tr) {
+    const list = events.filter((e) => e.tour === tr.slug);
+    if (!list.length) return "";
+    const cities = new Set(list.map((e) => e.city)).size;
+    const wide = tr.image || list[0].image;
+    const img = wide
+      ? `<span class="tcard__img"><img src="${esc(wide)}" alt="" loading="lazy"></span>`
+      : `<span class="tcard__img tcard__img--poster"><img src="${esc(list[0].poster)}" alt="" loading="lazy" aria-hidden="true"><img src="${esc(list[0].poster)}" alt="" loading="lazy"></span>`;
+    return `<a class="tcard" href="#/t/${esc(tr.slug)}">
+      ${img}
+      <span class="tcard__body">
+        <span class="tcard__title">${esc(tr.title)}</span>
+        <span class="tcard__meta">${I.cal}<span>${rangeLabel(list)}</span></span>
+        <span class="tcard__meta tcard__meta--last">${I.pin}<span>${t("tourDates", list.length, cities)}</span></span>
+        <span class="tcard__cta">${t("chooseCity")} ${I.arrowR}</span>
+      </span>
+    </a>`;
+  }
+
+  // Sideways row with prev/next buttons that page by the visible width
+  function initRail(track, scope) {
+    if (!track) return;
+    const btns = [...scope.querySelectorAll("[data-rail]")];
+    const sync = () => {
+      const max = track.scrollWidth - track.clientWidth - 2;
+      btns.forEach((b) => { b.disabled = b.dataset.rail < 0 ? track.scrollLeft <= 2 : track.scrollLeft >= max; });
+      btns[0]?.parentElement.toggleAttribute("hidden", max <= 0);
+    };
+    btns.forEach((b) => (b.onclick = () => track.scrollBy({ left: b.dataset.rail * track.clientWidth * 0.9, behavior: "smooth" })));
+    track.addEventListener("scroll", sync, { passive: true });
+    addEventListener("resize", sync);
+    sync();
   }
 
   function renderFilters() {
