@@ -491,9 +491,7 @@
     </div>`;
     // Background glow takes the colours of the card in view and cross-fades as you swipe
     const track = $(".m-cards__track", main), glows = $$(".m-glow i", main);
-    document.body.classList.toggle("m-home-mode", !!glows.length);
-    const hdr = $(".header");
-    if (hdr) main.style.setProperty("--m-hdr", hdr.offsetHeight + "px");
+    document.body.classList.toggle("glass-head", !!glows.length);
     let front = 0, last = -1;
     const glowTo = (i) => {
       if (!glows.length || i === last || !track.children[i]) return;
@@ -788,16 +786,7 @@
     document.title = `${cur.title} — ${cur.city} | Ticket Best Europe`;
     main.innerHTML = `
       <div class="page">
-        <section class="ev-hero">
-          <div class="ev-hero__bg"><img src="${esc(cur.poster || cur.image)}" alt=""></div>
-          <div class="container">
-            <button class="back" data-back>${I.arrowL}${t("back")}</button>
-            <div class="ev-hero__media">
-              <img class="ev-hero__blur" src="${esc(cur.poster || cur.image)}" alt="" aria-hidden="true">
-              <img class="ev-hero__poster" src="${esc(cur.poster || cur.image)}" alt="${esc(cur.title)}">
-            </div>
-          </div>
-        </section>
+        ${posterHeroHTML(cur.poster || cur.image, cur.title)}
 
         <div class="container">
           <div class="ev">
@@ -913,6 +902,18 @@
     renderSeries(main, { title: list[0].title, image: list[0].image, list });
   }
 
+  // Poster page top: the vertical poster on a soft glow made from its own colours (glow runs up under the glass header)
+  function posterHeroHTML(src, alt, extra = "") {
+    return `<section class="p-hero">
+      <div class="p-hero__glow" aria-hidden="true"><img src="${esc(src)}" alt=""></div>
+      <div class="container p-hero__inner">
+        <button class="back" data-back>${I.arrowL}${t("back")}</button>
+        <img class="p-hero__poster" src="${esc(src)}" alt="${esc(alt)}">
+        ${extra}
+      </div>
+    </section>`;
+  }
+
   function renderSeries(main, { title, image, list }) {
     const groups = groupSessions(list);
     const cities = new Set(list.map((e) => e.city)).size;
@@ -920,18 +921,11 @@
     const range = fRange(list[0].d, list[list.length - 1].d);
     document.title = `${title} | Ticket Best Europe`;
     main.innerHTML = `
-      <div class="page container">
-        <section class="tour-hero">
-          <img class="tour-hero__bg" src="${esc(list[0].poster || image)}" alt="" aria-hidden="true">
-          <button class="back" data-back>${I.arrowL}${t("back")}</button>
-          <div class="tour-hero__body">
-            <img class="tour-hero__poster" src="${esc(list[0].poster || image)}" alt="${esc(title)}">
-            <div>
-              <h1>${esc(title)}</h1>
-              <div class="tour__meta"><span class="pill">${esc(range)}</span><span class="pill">${t("tourDates", list.length, cities)}</span><span class="pill">${esc(countries)}</span></div>
-            </div>
-          </div>
-        </section>
+      <div class="page">
+        ${posterHeroHTML(list[0].poster || image, title, `
+          <h1 class="p-hero__title">${esc(title)}</h1>
+          <div class="tour__meta"><span class="pill">${esc(range)}</span><span class="pill">${t("tourDates", list.length, cities)}</span><span class="pill">${esc(countries)}</span></div>`)}
+        <div class="container">
         <div class="dates">
           ${groups.map((g) => `
             <div class="daterow">
@@ -941,8 +935,8 @@
               ${buyLink(g, "btn btn--accent", t("buyShort"))}
             </div>`).join("")}
         </div>
-      </div>
-      <p class="hall__hint">${t("co_swipe")}</p>`;
+        </div>
+      </div>`;
   }
 
   function renderNotFound(main) {
@@ -1450,12 +1444,13 @@
     const r = getRoute(), main = $("#main");
     if (co.open) closeCheckout();
     if (lastRoute === "home") homeScroll = scrollY;
-    document.body.classList.remove("has-buybar", "m-home-mode");
+    document.body.classList.remove("has-buybar", "glass-head");
     document.title = "Ticket Best Europe — " + (state.lang === "ru" ? "билеты на концерты и шоу" : state.lang === "en" ? "concert & show tickets" : "piletid kontsertidele ja etendustele");
     if (r.name === "event") renderEvent(main, r.slug, r.params);
     else if (r.name === "tour") renderTour(main, r.slug);
     else if (r.name === "show") renderShow(main, r.slug);
     else renderHome(main);
+    if ($(".p-hero__glow", main)) document.body.classList.add("glass-head");
 
     $$("[data-back]", main).forEach((b) => (b.onclick = () => (history.length > 1 && lastNav ? history.back() : (location.hash = "#/"))));
 
